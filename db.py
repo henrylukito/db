@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-import json
+import json, yaml
 
 nodes = {}
 collections = {}
@@ -38,18 +38,19 @@ def load(schemapath):
 
         filedesc = fileentries[filepath]
 
+        def assign_nodes_to_collections(collectiontext, nodeids):
+            col_ids = [col_id.strip() for col_id in collectiontext.split(",")]
+            for col_id in col_ids:
+                collections.setdefault(col_id, {})
+                collections[col_id].update(dict.fromkeys(nodeids))
+
         if filedesc["doctype"] == "id":
             ids = [line.strip() for line in filetext.splitlines() if line.strip()]
             for id in ids:
                 nodes.setdefault(id, {})
 
             if "collections" in filedesc:
-                col_ids = [
-                    col_id.strip() for col_id in filedesc["collections"].split(",")
-                ]
-                for col_id in col_ids:
-                    collections.setdefault(col_id, {})
-                    collections[col_id].update(dict.fromkeys(ids))
+                assign_nodes_to_collections(filedesc["collections"], ids)
 
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
@@ -61,6 +62,22 @@ def load(schemapath):
             for id, value in zip(ids, values):
                 nodes[id][propname] = value
                 properties[propname][id] = None
+
+        elif filedesc["doctype"] == "propdict":
+            propdict = (
+                json.loads(filetext)
+                if fullfilepath.suffix == ".json"
+                else yaml.safe_load(filetext)
+            )
+            for id, obj in propdict.items():
+                nodes.setdefault(id, {})
+                for propname in obj:
+                    properties.setdefault(propname, {})
+                    nodes[id][propname] = obj[propname]
+                    properties[propname][id] = None
+
+            if "collections" in filedesc:
+                assign_nodes_to_collections(filedesc["collections"], propdict.keys())
 
         else:
             print("error: unsupported file entry")
