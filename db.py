@@ -63,6 +63,24 @@ def load(schemapath):
                 nodes[id][propname] = value
                 properties[propname][id] = None
 
+        elif filedesc["doctype"] == "propkeyvalue":
+            propname = filedesc["propname"]
+            propkeyvalue = (
+                json.loads(filetext)
+                if fullfilepath.suffix == ".json"
+                else yaml.safe_load(filetext)
+            )
+            properties.setdefault(propname, {})
+            for id, value in propkeyvalue.items():
+                nodes.setdefault(id, {})
+                nodes[id][propname] = value
+                properties[propname][id] = None
+
+            if "collections" in filedesc:
+                assign_nodes_to_collections(
+                    filedesc["collections"], propkeyvalue.keys()
+                )
+
         elif filedesc["doctype"] == "propdict":
             propdict = (
                 json.loads(filetext)
