@@ -20,8 +20,15 @@ def load(schemapath):
 
     reset()
 
-    with open(schemapath) as file:
-        schema = json.load(file)
+    def dict_from_filepath(filepath):
+        with open(filepath) as file:
+            return (
+                json.load(file)
+                if Path(filepath).suffix == ".json"
+                else yaml.safe_load(file)
+            )
+
+    schema = dict_from_filepath(schemapath)
 
     fileentries = schema["files"]
 
@@ -29,14 +36,13 @@ def load(schemapath):
         Path(schema["directory"]) if "directory" in schema else Path(schemapath).parent
     )
 
-    for filepath in fileentries:
+    for filepath, filedesc in fileentries.items():
 
         fullfilepath = directorypath.joinpath(filepath)
 
-        with open(fullfilepath) as file:
-            filetext = file.read()
-
-        filedesc = fileentries[filepath]
+        def strlist_from_filepath(filepath):
+            with open(filepath) as file:
+                return [line.strip() for line in file.readlines() if line.strip()]
 
         def assign_nodes_to_collections(collectiontext, nodeids):
             col_ids = [col_id.strip() for col_id in collectiontext.split(",")]
@@ -45,7 +51,7 @@ def load(schemapath):
                 collections[col_id].update(dict.fromkeys(nodeids))
 
         if filedesc["doctype"] == "id":
-            ids = [line.strip() for line in filetext.splitlines() if line.strip()]
+            ids = strlist_from_filepath(fullfilepath)
             for id in ids:
                 nodes.setdefault(id, {})
 
@@ -55,9 +61,7 @@ def load(schemapath):
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
             typeconv = str if "datatype" not in filedesc else eval(filedesc["datatype"])
-            values = [
-                typeconv(line.strip()) for line in filetext.splitlines() if line.strip()
-            ]
+            values = [typeconv(item) for item in strlist_from_filepath(fullfilepath)]
             properties.setdefault(propname, {})
             for id, value in zip(ids, values):
                 nodes[id][propname] = value
@@ -65,11 +69,7 @@ def load(schemapath):
 
         elif filedesc["doctype"] == "propkeyvalue":
             propname = filedesc["propname"]
-            propkeyvalue = (
-                json.loads(filetext)
-                if fullfilepath.suffix == ".json"
-                else yaml.safe_load(filetext)
-            )
+            propkeyvalue = dict_from_filepath(fullfilepath)
             properties.setdefault(propname, {})
             for id, value in propkeyvalue.items():
                 nodes.setdefault(id, {})
@@ -82,11 +82,7 @@ def load(schemapath):
                 )
 
         elif filedesc["doctype"] == "propdict":
-            propdict = (
-                json.loads(filetext)
-                if fullfilepath.suffix == ".json"
-                else yaml.safe_load(filetext)
-            )
+            propdict = dict_from_filepath(fullfilepath)
             for id, obj in propdict.items():
                 nodes.setdefault(id, {})
                 for propname in obj:
