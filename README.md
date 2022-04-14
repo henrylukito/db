@@ -1,27 +1,27 @@
 # db
-Local graph database made from different files
+Local graph database from files
 
 ## Overview
 
-Given multiple files with different data structures (lists, key-values, dictionaries) and a schema file that describes how to interpret them, this Python module/script will generate several `dict` objects that combined the data from those files to form a graph database.
+Given multiple files with different data structures (list, key-value, dictionary) and a schema file, this Python module/script will build several `dict` objects that serve as a graph database.
 
-## Loading Database
+## Usage
 
-As a module:
+Create a schema file (YAML or JSON), then load it with db.py:
+
+Import as module in a script:
 
 ```python
 import db
 db.load('schema.json')
 ```
 
-Python interactive mode in a shell:
+Or with Python interactive mode in a shell:
 
 ```shell
 python -i db.py schema.json
 ```
 
-## Using Database
+Then access `dict` objects like `node`, `collection`, `property` and `relationship` (prefix with `db.` if imported as module)
 
-After loading, the following `dict` objects are available: `nodes`, `collections`, `properties` and `relationships`.
-
-Use various programming techniques in Python (type conversion, list comprehension, dictionary comprehension etc) to make queries on these `dict` objects.
+Use various methods in Python like list comprehension or dictionary comprehension to perform queries on these `dict` objects.
