@@ -31,6 +31,33 @@ def load(schemapath):
                 else yaml.safe_load(file)
             )
 
+    def strlist_from_filepath(filepath):
+        with open(filepath) as file:
+            return [line.strip() for line in file.readlines() if line.strip()]
+
+    def strlist_from_str(text):
+        return [token.strip() for token in text.split(",")]
+
+    def ensure_dict(obj):
+        if isinstance(obj, dict):
+            return obj
+        elif isinstance(obj, list):
+            return dict.fromkeys(obj)
+        else:
+            return dict.fromkeys([obj])
+
+    def setcollections(nodeids, collectionids):
+        for collectionid in collectionids:
+            collections.setdefault(collectionid, {}).update(dict.fromkeys(nodeids))
+
+    def setproperty(nodeid, propname, propvalue):
+        nodes.setdefault(nodeid, {})[propname] = propvalue
+        properties.setdefault(propname, {})[nodeid] = nodes[nodeid][propname]
+
+    def setrelationship(nodeid, relname, reltargetdict):
+        nodes.setdefault(nodeid, {}).setdefault(relname, {}).update(reltargetdict)
+        relationships.setdefault(relname, {})[nodeid] = nodes[nodeid][relname]
+
     schema = dict_from_filepath(schemapath)
 
     fileentries = schema["files"]
@@ -43,110 +70,73 @@ def load(schemapath):
 
         fullfilepath = directorypath.joinpath(filedesc["path"])
 
-        def strlist_from_filepath(filepath):
-            with open(filepath) as file:
-                return [line.strip() for line in file.readlines() if line.strip()]
-
-        def strlist_from_str(text):
-            return [token.strip() for token in text.split(",")]
-
-        def assign_nodes_to_collections(col_ids, nodeids):
-            for col_id in col_ids:
-                collections.setdefault(col_id, {})
-                collections[col_id].update(dict.fromkeys(nodeids))
-
         if filedesc["doctype"] == "id":
-            ids = strlist_from_filepath(fullfilepath)
-            for id in ids:
-                nodes.setdefault(id, {})
+            nodeids = strlist_from_filepath(fullfilepath)
+            for nodeid in nodeids:
+                nodes.setdefault(nodeid, {})
 
             if "collections" in filedesc:
-                col_ids = strlist_from_str(filedesc["collections"])
-                assign_nodes_to_collections(col_ids, ids)
+                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
 
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
             typeconv = str if "datatype" not in filedesc else eval(filedesc["datatype"])
-            values = [typeconv(item) for item in strlist_from_filepath(fullfilepath)]
-            properties.setdefault(propname, {})
-            for id, value in zip(ids, values):
-                nodes[id][propname] = value
-                properties[propname][id] = None
+            propvalues = [typeconv(item) for item in strlist_from_filepath(fullfilepath)]
+            for nodeid, propvalue in zip(nodeids, propvalues):
+                setproperty(nodeid, propname, propvalue)
 
         elif filedesc["doctype"] == "propkeyvalue":
             propname = filedesc["propname"]
-            propkeyvalue = dict_from_filepath(fullfilepath)
-            properties.setdefault(propname, {})
-            for id, value in propkeyvalue.items():
-                nodes.setdefault(id, {})
-                nodes[id][propname] = value
-                properties[propname][id] = None
+            filedict = dict_from_filepath(fullfilepath)
+            nodeids = filedict.keys()
+            for nodeid, propvalue in filedict.items():
+                setproperty(nodeid, propname, propvalue)
 
             if "collections" in filedesc:
-                col_ids = strlist_from_str(filedesc["collections"])
-                assign_nodes_to_collections(col_ids, propkeyvalue.keys())
+                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
 
         elif filedesc["doctype"] == "propdict":
-            propdict = dict_from_filepath(fullfilepath)
-            for id, obj in propdict.items():
-                nodes.setdefault(id, {})
-                for propname in obj:
-                    properties.setdefault(propname, {})
-                    nodes[id][propname] = obj[propname]
-                    properties[propname][id] = None
+            filedict = dict_from_filepath(fullfilepath)
+            nodeids = filedict.keys()
+            for nodeid, propdict in filedict.items():
+                for propname, propval in propdict.items():
+                    setproperty(nodeid, propname, propval)
 
             if "collections" in filedesc:
-                col_ids = strlist_from_str(filedesc["collections"])
-                assign_nodes_to_collections(col_ids, propdict.keys())
+                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
+                
 
         elif filedesc["doctype"] == "relkeyvalue":
             relname = filedesc["relname"]
             filedict = dict_from_filepath(fullfilepath)
-
-            relationships.setdefault(relname, {})
+            nodeids = filedict.keys()
 
             inverserelname = (
                 filedesc["inverserelname"] if "inverserelname" in filedesc else None
             )
-            if inverserelname:
-                relationships.setdefault(inverserelname, {})
 
             if "sourcecollections" in filedesc:
-                sourcecollections = strlist_from_str(filedesc["sourcecollections"])
-                assign_nodes_to_collections(sourcecollections, filedict.keys())
+                setcollections(nodeids, strlist_from_str(filedesc["sourcecollections"]))
 
-            targetcollections = (
+            targetcollectionids = (
                 strlist_from_str(filedesc["targetcollections"])
                 if "targetcollections" in filedesc
                 else None
             )
 
-            for id, relvaluedict in filedict.items():
-                nodes.setdefault(id, {})
+            for nodeid, reltargetdict in filedict.items():
+                reltargetdict = ensure_dict(reltargetdict)
+                targetids = reltargetdict.keys()
 
-                # massage relvalue to be dict
-                if isinstance(relvaluedict, dict):
-                    pass
-                elif isinstance(relvaluedict, list):
-                    relvaluedict = dict.fromkeys(relvaluedict)
-                else:
-                    relvaluedict = dict.fromkeys([relvaluedict])
+                setrelationship(nodeid, relname, reltargetdict)
 
-                nodes[id][relname] = relvaluedict
-                relationships[relname][id] = relvaluedict
+                if inverserelname:
+                    for targetid in targetids:
+                        relpropvalue = nodes[nodeid][relname][targetid]
+                        setrelationship(targetid, inverserelname, {nodeid: relpropvalue})
 
-                for targetid in relvaluedict:
-                    nodes.setdefault(targetid, {})
-
-                    if inverserelname:
-                        relpropvalue = nodes[id][relname][targetid]
-                        nodes[targetid].setdefault(inverserelname, {})
-                        nodes[targetid][inverserelname][id] = relpropvalue
-                        relationships[inverserelname].setdefault(targetid, {})
-                        relationships[inverserelname][targetid][id] = relpropvalue
-
-                if targetcollections:
-                    assign_nodes_to_collections(targetcollections, relvaluedict.keys())
+                if targetcollectionids:
+                    setcollections(targetids, targetcollectionids)
 
         else:
             print("error: unsupported file entry")
