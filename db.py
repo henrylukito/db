@@ -5,15 +5,18 @@ import json, yaml
 nodes = {}
 collections = {}
 properties = {}
+relationships = {}
 
 
 def reset():
     global nodes
     global collections
     global properties
+    global relationships
     nodes = {}
     collections = {}
     properties = {}
+    relationships = {}
 
 
 def load(schemapath):
@@ -38,14 +41,16 @@ def load(schemapath):
 
     for filedesc in fileentries:
 
-        fullfilepath = directorypath.joinpath(filedesc['path'])
+        fullfilepath = directorypath.joinpath(filedesc["path"])
 
         def strlist_from_filepath(filepath):
             with open(filepath) as file:
                 return [line.strip() for line in file.readlines() if line.strip()]
 
-        def assign_nodes_to_collections(collectiontext, nodeids):
-            col_ids = [col_id.strip() for col_id in collectiontext.split(",")]
+        def strlist_from_str(text):
+            return [token.strip() for token in text.split(",")]
+
+        def assign_nodes_to_collections(col_ids, nodeids):
             for col_id in col_ids:
                 collections.setdefault(col_id, {})
                 collections[col_id].update(dict.fromkeys(nodeids))
@@ -56,7 +61,8 @@ def load(schemapath):
                 nodes.setdefault(id, {})
 
             if "collections" in filedesc:
-                assign_nodes_to_collections(filedesc["collections"], ids)
+                col_ids = strlist_from_str(filedesc["collections"])
+                assign_nodes_to_collections(col_ids, ids)
 
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
@@ -77,9 +83,8 @@ def load(schemapath):
                 properties[propname][id] = None
 
             if "collections" in filedesc:
-                assign_nodes_to_collections(
-                    filedesc["collections"], propkeyvalue.keys()
-                )
+                col_ids = strlist_from_str(filedesc["collections"])
+                assign_nodes_to_collections(col_ids, propkeyvalue.keys())
 
         elif filedesc["doctype"] == "propdict":
             propdict = dict_from_filepath(fullfilepath)
@@ -91,7 +96,57 @@ def load(schemapath):
                     properties[propname][id] = None
 
             if "collections" in filedesc:
-                assign_nodes_to_collections(filedesc["collections"], propdict.keys())
+                col_ids = strlist_from_str(filedesc["collections"])
+                assign_nodes_to_collections(col_ids, propdict.keys())
+
+        elif filedesc["doctype"] == "relkeyvalue":
+            relname = filedesc["relname"]
+            filedict = dict_from_filepath(fullfilepath)
+
+            relationships.setdefault(relname, {})
+
+            inverserelname = (
+                filedesc["inverserelname"] if "inverserelname" in filedesc else None
+            )
+            if inverserelname:
+                relationships.setdefault(inverserelname, {})
+
+            if "sourcecollections" in filedesc:
+                sourcecollections = strlist_from_str(filedesc["sourcecollections"])
+                assign_nodes_to_collections(sourcecollections, filedict.keys())
+
+            targetcollections = (
+                strlist_from_str(filedesc["targetcollections"])
+                if "targetcollections" in filedesc
+                else None
+            )
+
+            for id, relvaluedict in filedict.items():
+                nodes.setdefault(id, {})
+
+                # massage relvalue to be dict
+                if isinstance(relvaluedict, dict):
+                    pass
+                elif isinstance(relvaluedict, list):
+                    relvaluedict = dict.fromkeys(relvaluedict)
+                else:
+                    relvaluedict = dict.fromkeys([relvaluedict])
+
+                nodes[id][relname] = relvaluedict
+                relationships[relname][id] = relvaluedict
+
+                for targetid in relvaluedict:
+                    nodes.setdefault(targetid, {})
+
+                    if inverserelname:
+                        relpropvalue = nodes[id][relname][targetid]
+                        nodes[targetid].setdefault(inverserelname, {})
+                        nodes[targetid][inverserelname][id] = relpropvalue
+                        relationships[inverserelname].setdefault(targetid, {})
+                        relationships[inverserelname][targetid][id] = relpropvalue
+
+                if targetcollections:
+                    assign_nodes_to_collections(targetcollections, relvaluedict.keys())
 
         else:
             print("error: unsupported file entry")
