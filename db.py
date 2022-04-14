@@ -75,8 +75,8 @@ def load(schemapath):
             for nodeid in nodeids:
                 node.setdefault(nodeid, {})
 
-            if "collections" in filedesc:
-                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
+            if "collection" in filedesc:
+                setcollections(nodeids, strlist_from_str(filedesc["collection"]))
 
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
@@ -92,8 +92,8 @@ def load(schemapath):
             for nodeid, propvalue in filedict.items():
                 setproperty(nodeid, propname, propvalue)
 
-            if "collections" in filedesc:
-                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
+            if "collection" in filedesc:
+                setcollections(nodeids, strlist_from_str(filedesc["collection"]))
 
         elif filedesc["doctype"] == "propdict":
             filedict = dict_from_filepath(fullfilepath)
@@ -102,8 +102,8 @@ def load(schemapath):
                 for propname, propval in propdict.items():
                     setproperty(nodeid, propname, propval)
 
-            if "collections" in filedesc:
-                setcollections(nodeids, strlist_from_str(filedesc["collections"]))
+            if "collection" in filedesc:
+                setcollections(nodeids, strlist_from_str(filedesc["collection"]))
                 
 
         elif filedesc["doctype"] == "relkeyvalue":
@@ -115,12 +115,12 @@ def load(schemapath):
                 filedesc["inverserelname"] if "inverserelname" in filedesc else None
             )
 
-            if "sourcecollections" in filedesc:
-                setcollections(nodeids, strlist_from_str(filedesc["sourcecollections"]))
+            if "sourcecollection" in filedesc:
+                setcollections(nodeids, strlist_from_str(filedesc["sourcecollection"]))
 
             targetcollectionids = (
-                strlist_from_str(filedesc["targetcollections"])
-                if "targetcollections" in filedesc
+                strlist_from_str(filedesc["targetcollection"])
+                if "targetcollection" in filedesc
                 else None
             )
 
