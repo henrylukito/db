@@ -38,6 +38,19 @@ def load(schemapath):
     def strlist_from_str(text):
         return [token.strip() for token in text.split(",")]
 
+    def dict_from_str(text):
+        arr2d = [
+            [substr.strip() for substr in text.split("=")]
+            for text in strlist_from_str(text)
+        ]
+        return dict(
+            [
+                arr if len(arr) == 2 else [arr[0], arr[0]]
+                for arr in arr2d
+                if len(arr) <= 2
+            ]
+        )
+
     def ensure_dict(obj):
         if isinstance(obj, dict):
             return obj
@@ -48,7 +61,9 @@ def load(schemapath):
 
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
-            collection.setdefault(collectionid, {}).update({nodeid: node[nodeid] for nodeid in nodeids})
+            collection.setdefault(collectionid, {}).update(
+                {nodeid: node[nodeid] for nodeid in nodeids}
+            )
 
     def setproperty(nodeid, propname, propvalue):
         node.setdefault(nodeid, {})[propname] = propvalue
@@ -81,7 +96,9 @@ def load(schemapath):
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
             typeconv = str if "datatype" not in filedesc else eval(filedesc["datatype"])
-            propvalues = [typeconv(item) for item in strlist_from_filepath(fullfilepath)]
+            propvalues = [
+                typeconv(item) for item in strlist_from_filepath(fullfilepath)
+            ]
             for nodeid, propvalue in zip(nodeids, propvalues):
                 setproperty(nodeid, propname, propvalue)
 
@@ -98,13 +115,21 @@ def load(schemapath):
         elif filedesc["doctype"] == "propdict":
             filedict = dict_from_filepath(fullfilepath)
             nodeids = filedict.keys()
+            propmap = (
+                dict_from_str(filedesc["propmap"]) if "propmap" in filedesc else None
+            )
             for nodeid, propdict in filedict.items():
+                if propmap:
+                    propdict = {
+                        propmap[propname]: propval
+                        for propname, propval in propdict.items()
+                        if propname in propmap
+                    }
                 for propname, propval in propdict.items():
                     setproperty(nodeid, propname, propval)
 
             if "collection" in filedesc:
                 setcollections(nodeids, strlist_from_str(filedesc["collection"]))
-                
 
         elif filedesc["doctype"] == "relkeyvalue":
             relname = filedesc["relname"]
@@ -133,7 +158,9 @@ def load(schemapath):
                 if inverserelname:
                     for targetid in targetids:
                         relpropvalue = node[nodeid][relname][targetid]
-                        setrelationship(targetid, inverserelname, {nodeid: relpropvalue})
+                        setrelationship(
+                            targetid, inverserelname, {nodeid: relpropvalue}
+                        )
 
                 if targetcollectionids:
                     setcollections(targetids, targetcollectionids)
