@@ -36,9 +36,9 @@ def load(schemapath):
         Path(schema["directory"]) if "directory" in schema else Path(schemapath).parent
     )
 
-    for filepath, filedesc in fileentries.items():
+    for filedesc in fileentries:
 
-        fullfilepath = directorypath.joinpath(filepath)
+        fullfilepath = directorypath.joinpath(filedesc['path'])
 
         def strlist_from_filepath(filepath):
             with open(filepath) as file:
