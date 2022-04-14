@@ -2,21 +2,21 @@ import sys
 from pathlib import Path
 import json, yaml
 
-nodes = {}
-collections = {}
-properties = {}
-relationships = {}
+node = {}
+collection = {}
+property = {}
+relationship = {}
 
 
 def reset():
-    global nodes
-    global collections
-    global properties
-    global relationships
-    nodes = {}
-    collections = {}
-    properties = {}
-    relationships = {}
+    global node
+    global collection
+    global property
+    global relationship
+    node = {}
+    collection = {}
+    property = {}
+    relationship = {}
 
 
 def load(schemapath):
@@ -48,15 +48,15 @@ def load(schemapath):
 
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
-            collections.setdefault(collectionid, {}).update(dict.fromkeys(nodeids))
+            collection.setdefault(collectionid, {}).update({nodeid: node[nodeid] for nodeid in nodeids})
 
     def setproperty(nodeid, propname, propvalue):
-        nodes.setdefault(nodeid, {})[propname] = propvalue
-        properties.setdefault(propname, {})[nodeid] = nodes[nodeid][propname]
+        node.setdefault(nodeid, {})[propname] = propvalue
+        property.setdefault(propname, {})[nodeid] = node[nodeid][propname]
 
     def setrelationship(nodeid, relname, reltargetdict):
-        nodes.setdefault(nodeid, {}).setdefault(relname, {}).update(reltargetdict)
-        relationships.setdefault(relname, {})[nodeid] = nodes[nodeid][relname]
+        node.setdefault(nodeid, {}).setdefault(relname, {}).update(reltargetdict)
+        relationship.setdefault(relname, {})[nodeid] = node[nodeid][relname]
 
     schema = dict_from_filepath(schemapath)
 
@@ -73,7 +73,7 @@ def load(schemapath):
         if filedesc["doctype"] == "id":
             nodeids = strlist_from_filepath(fullfilepath)
             for nodeid in nodeids:
-                nodes.setdefault(nodeid, {})
+                node.setdefault(nodeid, {})
 
             if "collections" in filedesc:
                 setcollections(nodeids, strlist_from_str(filedesc["collections"]))
@@ -132,7 +132,7 @@ def load(schemapath):
 
                 if inverserelname:
                     for targetid in targetids:
-                        relpropvalue = nodes[nodeid][relname][targetid]
+                        relpropvalue = node[nodeid][relname][targetid]
                         setrelationship(targetid, inverserelname, {nodeid: relpropvalue})
 
                 if targetcollectionids:
