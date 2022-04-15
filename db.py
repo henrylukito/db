@@ -62,7 +62,7 @@ def load(schemapath):
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
             collection.setdefault(collectionid, {}).update(
-                {nodeid: node[nodeid] for nodeid in nodeids}
+                {nodeid: node.setdefault(nodeid, {}) for nodeid in nodeids}
             )
 
     def setproperty(nodeid, propname, propvalue):
@@ -164,6 +164,33 @@ def load(schemapath):
 
                 if targetcollectionids:
                     setcollections(targetids, targetcollectionids)
+
+        elif filedesc["doctype"] == "reldict":
+            filedict = dict_from_filepath(fullfilepath)
+            nodeids = filedict.keys()
+
+            inverserelmap = filedesc["inverserelmap"] if "inverserelmap" in filedesc else None
+
+            if "sourcecollection" in filedesc:
+                setcollections(nodeids, strlist_from_str(filedesc["sourcecollection"]))
+
+            targetcollectionmap = filedesc["targetcollectionmap"] if "targetcollectionmap" in filedesc else None
+
+            for nodeid, reldict in filedict.items():
+                for relname, reltargetdict in reldict.items():
+                    reltargetdict = ensure_dict(reltargetdict)
+                    targetids = reltargetdict.keys()
+                    setrelationship(nodeid, relname, reltargetdict)
+
+                    if targetcollectionmap and relname in targetcollectionmap:
+                        targetcollectionids = strlist_from_str(targetcollectionmap[relname])
+                        setcollections(targetids, targetcollectionids)
+
+                    if inverserelmap and relname in inverserelmap:
+                        inverserelname = inverserelmap[relname]
+                        for targetid in targetids:
+                            relpropvalue = node[nodeid][relname][targetid]
+                            setrelationship(targetid, inverserelname, {nodeid: relpropvalue})
 
         else:
             print("error: unsupported file entry")
