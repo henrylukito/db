@@ -38,19 +38,6 @@ def load(schemapath):
     def strlist_from_str(text):
         return [token.strip() for token in text.split(",")]
 
-    def dict_from_str(text):
-        arr2d = [
-            [substr.strip() for substr in text.split("=")]
-            for text in strlist_from_str(text)
-        ]
-        return dict(
-            [
-                arr if len(arr) == 2 else [arr[0], arr[0]]
-                for arr in arr2d
-                if len(arr) <= 2
-            ]
-        )
-
     def ensure_dict(obj):
         if isinstance(obj, dict):
             return obj
@@ -61,7 +48,7 @@ def load(schemapath):
 
     def setnodes(nodeids):
         for nodeid in nodeids:
-                node.setdefault(nodeid, {})
+            node.setdefault(nodeid, {})
 
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
@@ -118,13 +105,11 @@ def load(schemapath):
         elif filedesc["doctype"] == "propdict":
             filedict = dict_from_filepath(fullfilepath)
             nodeids = filedict.keys()
-            propmap = (
-                dict_from_str(filedesc["propmap"]) if "propmap" in filedesc else None
-            )
+            propmap = filedesc["propmap"] if "propmap" in filedesc else None
             for nodeid, propdict in filedict.items():
                 if propmap:
                     propdict = {
-                        propmap[propname]: propval
+                        (propmap[propname] if propmap[propname] else propname): propval
                         for propname, propval in propdict.items()
                         if propname in propmap
                     }
@@ -174,12 +159,18 @@ def load(schemapath):
             filedict = dict_from_filepath(fullfilepath)
             nodeids = filedict.keys()
 
-            inverserelmap = filedesc["inverserelmap"] if "inverserelmap" in filedesc else None
+            inverserelmap = (
+                filedesc["inverserelmap"] if "inverserelmap" in filedesc else None
+            )
 
             if "sourcecollection" in filedesc:
                 setcollections(nodeids, strlist_from_str(filedesc["sourcecollection"]))
 
-            targetcollectionmap = filedesc["targetcollectionmap"] if "targetcollectionmap" in filedesc else None
+            targetcollectionmap = (
+                filedesc["targetcollectionmap"]
+                if "targetcollectionmap" in filedesc
+                else None
+            )
 
             for nodeid, reldict in filedict.items():
                 for relname, reltargetdict in reldict.items():
@@ -191,14 +182,18 @@ def load(schemapath):
                     setrelationship(nodeid, relname, reltargetdict)
 
                     if targetcollectionmap and relname in targetcollectionmap:
-                        targetcollectionids = strlist_from_str(targetcollectionmap[relname])
+                        targetcollectionids = strlist_from_str(
+                            targetcollectionmap[relname]
+                        )
                         setcollections(targetids, targetcollectionids)
 
                     if inverserelmap and relname in inverserelmap:
                         inverserelname = inverserelmap[relname]
                         for targetid in targetids:
                             relpropvalue = node[nodeid][relname][targetid]
-                            setrelationship(targetid, inverserelname, {nodeid: relpropvalue})
+                            setrelationship(
+                                targetid, inverserelname, {nodeid: relpropvalue}
+                            )
 
         else:
             print("error: unsupported file entry")
