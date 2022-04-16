@@ -159,6 +159,8 @@ def load(schemapath):
             filedict = dict_from_filepath(fullfilepath)
             nodeids = filedict.keys()
 
+            relmap = filedesc["relmap"] if "relmap" in filedesc else None
+
             inverserelmap = (
                 filedesc["inverserelmap"] if "inverserelmap" in filedesc else None
             )
@@ -173,6 +175,12 @@ def load(schemapath):
             )
 
             for nodeid, reldict in filedict.items():
+                if relmap:
+                    reldict = {
+                        (relmap[relname] if relmap[relname] else relname): reltargetdict
+                        for relname, reltargetdict in reldict.items()
+                        if relname in relmap
+                    }
                 for relname, reltargetdict in reldict.items():
                     reltargetdict = ensure_dict(reltargetdict)
                     targetids = reltargetdict.keys()
