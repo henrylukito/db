@@ -59,6 +59,10 @@ def load(schemapath):
         else:
             return dict.fromkeys([obj])
 
+    def setnodes(nodeids):
+        for nodeid in nodeids:
+                node.setdefault(nodeid, {})
+
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
             collection.setdefault(collectionid, {}).update(
@@ -87,8 +91,7 @@ def load(schemapath):
 
         if filedesc["doctype"] == "id":
             nodeids = strlist_from_filepath(fullfilepath)
-            for nodeid in nodeids:
-                node.setdefault(nodeid, {})
+            setnodes(nodeids)
 
             if "collection" in filedesc:
                 setcollections(nodeids, strlist_from_str(filedesc["collection"]))
@@ -153,6 +156,8 @@ def load(schemapath):
                 reltargetdict = ensure_dict(reltargetdict)
                 targetids = reltargetdict.keys()
 
+                setnodes(targetids)
+
                 setrelationship(nodeid, relname, reltargetdict)
 
                 if inverserelname:
@@ -180,6 +185,9 @@ def load(schemapath):
                 for relname, reltargetdict in reldict.items():
                     reltargetdict = ensure_dict(reltargetdict)
                     targetids = reltargetdict.keys()
+
+                    setnodes(targetids)
+
                     setrelationship(nodeid, relname, reltargetdict)
 
                     if targetcollectionmap and relname in targetcollectionmap:
