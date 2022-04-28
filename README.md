@@ -71,11 +71,9 @@ dict comprehension
 
 ## Possible Future Updates
 
-- policy handling if same name is used for property and relationship
 - change map such as `propmap` to `propselect` and `proprename`
 - support for files with table data structure (csv)
 - instead of a relationship having a value, it should have a property or even relationship (relprop and relrel)
-- a dict object where key is node id and value is list of all collections where the node is in
 - a dict object where key is property id and value is property type
 - id remapping for when file's node ids are not the same
 - `expects` in schema to validate database after it is loaded

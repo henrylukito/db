@@ -46,23 +46,49 @@ def load(schemapath):
         else:
             return dict.fromkeys([obj])
 
+    def touch_node(nodeid):
+        if not node[nodeid]:
+            node[nodeid] = {"collection": None, "property": None, "relationship": None}
+        return node[nodeid]
+
+    def touch_node_collection(nodeid):
+        if not touch_node(nodeid)["collection"]:
+            node[nodeid]["collection"] = {}
+        return node[nodeid]["collection"]
+
+    def touch_node_property(nodeid):
+        if not touch_node(nodeid)["property"]:
+            node[nodeid]["property"] = {}
+        return node[nodeid]["property"]
+
+    def touch_node_relationship(nodeid):
+        if not touch_node(nodeid)["relationship"]:
+            node[nodeid]["relationship"] = {}
+        return node[nodeid]["relationship"]
+
     def setnodes(nodeids):
         for nodeid in nodeids:
-            node.setdefault(nodeid, {})
+            node.setdefault(nodeid)
 
     def setcollections(nodeids, collectionids):
         for collectionid in collectionids:
-            collection.setdefault(collectionid, {}).update(
-                {nodeid: node.setdefault(nodeid, {}) for nodeid in nodeids}
-            )
+            collection.setdefault(collectionid, {})
+            for nodeid in nodeids:
+                collection[collectionid].setdefault(nodeid)
+        for nodeid in nodeids:
+            touch_node_collection(nodeid)
+            for collectionid in collectionids:
+                node[nodeid]["collection"].setdefault(collectionid)
 
     def setproperty(nodeid, propname, propvalue):
-        node.setdefault(nodeid, {})[propname] = propvalue
-        property.setdefault(propname, {})[nodeid] = node[nodeid][propname]
+        touch_node_property(nodeid).setdefault(propname, propvalue)
+        property.setdefault(propname, {})[nodeid] = node[nodeid]["property"][propname]
 
     def setrelationship(nodeid, relname, reltargetdict):
-        node.setdefault(nodeid, {}).setdefault(relname, {}).update(reltargetdict)
-        relationship.setdefault(relname, {})[nodeid] = node[nodeid][relname]
+        touch_node_relationship(nodeid).setdefault(relname, {}).update(reltargetdict)
+        relationship.setdefault(relname, {})[nodeid] = node[nodeid]["relationship"][
+            relname
+        ]
 
     schema = dict_from_filepath(schemapath)
 
