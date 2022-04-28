@@ -3,23 +3,23 @@ Local graph database from files
 
 ## Overview
 
-Given multiple files with different data structures (list, key-value, dictionary) and a schema file, this Python module will build several dict objects that contain information like from a graph database.
+Given multiple files with different data structures (list, key-value, dictionary) and a schema file, this Python module will build several dict objects that contain data like a graph database.
 
 ## Usage
 
-Create a schema (yaml or json) that points to files and describe how to extract data from those files, then db.load.
+Create a schema (yaml or json) that points to files and describe how to use the data from those files, then db.load.
 
-Afterwards, use Python tools such as list comprehension to analyze db objects such as `node`, `relationship` etc.
+Afterwards, use Python programming such as list comprehension to analyze db objects such as `node`, `relationship` etc.
 
 ## Objects
 
 ### node
 
-dict where key is node id and value is subdict. subdict's key is either property or relationship id and value is their value.
+dict where key is node id and value is dictionary for the node's properties and relationships, and the collections where they're in.
 
 ### collection
 
-dict where key is collection id and value is subdict. subdict's key is node id and value is the same dict as node dict's value.
+dict where key is collection id and value is the set of node ids of all the nodes inside that collection.
 
 ### property
 
@@ -31,7 +31,7 @@ dict where key is relationship id and value is subdict. subdict's key is node id
 
 ## Schema
 
-`files` contains a list of files that will be processed. For each entry, `path` and `doctype` are required. Additional properties may be required depending on doctype.
+`files` should contain a list of files that will be read. For each file entry, `path` and `doctype` attributes are required. Additional attributes may be required depending on the doctype.
 
 ## Doctypes
 
@@ -73,8 +73,8 @@ dict comprehension
 
 - change map such as `propmap` to `propselect` and `proprename`
 - support for files with table data structure (csv)
-- instead of a relationship having a value, it should have a property or even relationship (relprop and relrel)
+- instead of relationship just having a value, it should have properties or even relationships (relprop and relrel)
 - a dict object where key is property id and value is property type
-- id remapping for when file's node ids are not the same
+- id remapping feature for when file's node ids are not the same
 - `expects` in schema to validate database after it is loaded
 - `builds` in schema to automatically output certain files after database is loaded
