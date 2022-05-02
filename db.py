@@ -69,14 +69,14 @@ def load(schemapath):
             node.setdefault(nodeid)
 
     def setcollections(nodeids, collectionids):
-        for collectionid in collectionids:
-            collection.setdefault(collectionid, {})
-            for nodeid in nodeids:
-                collection[collectionid].setdefault(nodeid)
         for nodeid in nodeids:
             touch_node_collection(nodeid)
             for collectionid in collectionids:
                 node[nodeid]["collection"].setdefault(collectionid)
+        for collectionid in collectionids:
+            collection.setdefault(collectionid, {})
+            for nodeid in nodeids:
+                collection[collectionid].setdefault(nodeid, node[nodeid])
 
     def setproperty(nodeid, propname, propvalue):
         touch_node_property(nodeid).setdefault(propname, propvalue)
