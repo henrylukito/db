@@ -53,7 +53,7 @@ The file contains a dict where key is node id and value is subdict. subdict's ke
 
 ### relkeyvalue
 
-The file contains a dict where key is node id of relationship source and value is subdict. subdict's key is node id of relationship target and value is relationship value. `inverserelname` is optional and can be used to automatically define inverse relationship. `sourcecollections` is optional and can be used to assign source nodes to collections. `targetcollections` is optional and can be used to assign target nodes to collections.
+The file contains a dict where key is node id of relationship source and value is subdict. subdict's key is node id of relationship target and value is relationship value. `relname` is required to specify relationship name. `inverserelname` is optional and can be used to automatically define inverse relationship. `sourcecollections` is optional and can be used to assign source nodes to collections. `targetcollections` is optional and can be used to assign target nodes to collections.
 
 ### reldict
 
