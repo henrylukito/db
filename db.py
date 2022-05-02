@@ -4,17 +4,13 @@ import sys
 from pathlib import Path
 import json, yaml
 
-node = {}
-collection = {}
-property = {}
-relationship = {}
-
 
 def reset():
     global node
     global collection
     global property
     global relationship
+
     node = {}
     collection = {}
     property = {}
@@ -113,7 +109,11 @@ def load(schemapath):
 
         elif filedesc["doctype"] == "propvaluelist":
             propname = filedesc["propname"]
-            typeconv = str if "datatype" not in filedesc else eval(filedesc["datatype"])
+            typeconv = (
+                lambda x: x
+                if "datatype" not in filedesc
+                else eval(filedesc["datatype"])
+            )
             propvalues = [
                 typeconv(item) for item in strlist_from_filepath(fullfilepath)
             ]
@@ -175,7 +175,7 @@ def load(schemapath):
 
                 if inverserelname:
                     for targetid in targetids:
-                        relpropvalue = node[nodeid]['relationship'][relname][targetid]
+                        relpropvalue = node[nodeid]["relationship"][relname][targetid]
                         setrelationship(
                             targetid, inverserelname, {nodeid: relpropvalue}
                         )
@@ -226,7 +226,9 @@ def load(schemapath):
                     if inverserelmap and relname in inverserelmap:
                         inverserelname = inverserelmap[relname]
                         for targetid in targetids:
-                            relpropvalue = node[nodeid]['relationship'][relname][targetid]
+                            relpropvalue = node[nodeid]["relationship"][relname][
+                                targetid
+                            ]
                             setrelationship(
                                 targetid, inverserelname, {nodeid: relpropvalue}
                             )
