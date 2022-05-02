@@ -47,7 +47,7 @@ def load(schemapath):
             return dict.fromkeys([obj])
 
     def touch_node(nodeid):
-        if not node[nodeid]:
+        if nodeid not in node or not node[nodeid]:
             node[nodeid] = {"collection": None, "property": None, "relationship": None}
         return node[nodeid]
 
@@ -173,7 +173,7 @@ def load(schemapath):
 
                 if inverserelname:
                     for targetid in targetids:
-                        relpropvalue = node[nodeid][relname][targetid]
+                        relpropvalue = node[nodeid]['relationship'][relname][targetid]
                         setrelationship(
                             targetid, inverserelname, {nodeid: relpropvalue}
                         )
@@ -224,7 +224,7 @@ def load(schemapath):
                     if inverserelmap and relname in inverserelmap:
                         inverserelname = inverserelmap[relname]
                         for targetid in targetids:
-                            relpropvalue = node[nodeid][relname][targetid]
+                            relpropvalue = node[nodeid]['relationship'][relname][targetid]
                             setrelationship(
                                 targetid, inverserelname, {nodeid: relpropvalue}
                             )
