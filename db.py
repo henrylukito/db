@@ -37,20 +37,24 @@ def set_node(nodeid):
   'reltarget': nodereltarget.setdefault(nodeid, {})})
 
 def set_node_collection(nodeid, colid):
-  col.setdefault(colid, {}).setdefault(nodeid, node[nodeid])
-  nodecol.setdefault(nodeid, {}).setdefault(colid, col[colid])
+  col.setdefault(colid, {})[nodeid] = node[nodeid]
+  nodecol.setdefault(nodeid, {})[colid] = col[colid]
 
 def set_node_property(nodeid, propid, propvalue):
   prop.setdefault(propid, {})[nodeid] = propvalue
   nodeprop.setdefault(nodeid, {})[propid] = propvalue
 
-def set_node_relationship(sourceid, relid, targetid):
+def set_node_relationship(relid, sourceid, targetid):
   rel.setdefault(relid, {}).setdefault(sourceid, {}).setdefault(targetid, {})
   reltarget.setdefault(relid, {}).setdefault(targetid, {})[sourceid] = rel[relid][sourceid][targetid]
   noderel.setdefault(sourceid, {}).setdefault(relid, {})[targetid] = rel[relid][sourceid][targetid]
   nodereltarget.setdefault(targetid, {}).setdefault(relid, {})[sourceid] = rel[relid][sourceid][targetid]
 
-def set_node_relationship_property(sourceid, relid, targetid, relpropid, relpropvalue):
+def set_node_inverse_relationship(relid, sourceid, targetid, inverserelid):
+  rel.setdefault(inverserelid, {}).setdefault(targetid, {})[sourceid] = rel[relid][sourceid][targetid]
+  set_node_relationship(inverserelid, targetid, sourceid)
+
+def set_node_relationship_property(relid, sourceid, targetid, relpropid, relpropvalue):
   rel.setdefault(relid, {}).setdefault(sourceid, {}).setdefault(targetid, {})[relpropid] = relpropvalue
   relprop.setdefault(relpropid, {}).setdefault(relid, {}).setdefault(sourceid, {})[targetid] = relpropvalue
 
@@ -86,7 +90,7 @@ def nodelist(info):
   set_nodes(nodeids, info.get('node-assert'))
   set_nodes_collections(nodeids, info.get('collection'))
 
-def nodepropkeyvalue(info):
+def nodepropkv(info):
   filedict = yaml.safe_load(Path(info['file']).read_text(encoding='utf-8'))
   nodeids = list(filedict)
   propid = info['propname']
@@ -104,7 +108,7 @@ def get_targetdict(obj):
     obj = {targetid: {} for targetid in obj}
   return obj
 
-def noderelkeyvalue(info):
+def noderelkv(info):
   filedict = yaml.safe_load(Path(info['file']).read_text(encoding='utf-8'))
   sourceids = list(filedict)
   relid = info['relname']
@@ -116,4 +120,28 @@ def noderelkeyvalue(info):
     set_nodes(targetids, info.get('target-assert'))
     set_nodes_collections(targetids, info.get('target-collection'))
     for targetid in targetids:
-      set_node_relationship(sourceid, relid, targetid)
+      set_node_relationship(relid, sourceid, targetid)
+      if 'inverserelname' in info:
+        set_node_inverse_relationship(relid, sourceid, targetid, info['inverserelname'])
+      elif 'bidirectional' in info and info['bidirectional'] == True:
+        set_node_inverse_relationship(relid, sourceid, targetid, relid)
+
+def noderelkvpropkv(info):
+  filedict = yaml.safe_load(Path(info['file']).read_text(encoding='utf-8'))
+  sourceids = list(filedict)
+  relid = info['relname']
+  relpropid = info['relpropname']
+  set_nodes(sourceids, info.get('source-assert'))
+  set_nodes_collections(sourceids, info.get('source-collection'))
+  for sourceid in sourceids:
+    targetdict = get_targetdict(filedict[sourceid])
+    targetids = list(targetdict)
+    set_nodes(targetids, info.get('target-assert'))
+    set_nodes_collections(targetids, info.get('target-collection'))
+    for targetid in targetids:
+      set_node_relationship(relid, sourceid, targetid)
+      if 'inverserelname' in info:
+        set_node_inverse_relationship(relid, sourceid, targetid, info['inverserelname'])
+      elif info.get('bidirectional') == True:
+        set_node_inverse_relationship(relid, sourceid, targetid, relid)
+      set_node_relationship_property(relid, sourceid, targetid, relpropid, targetdict[targetid])
